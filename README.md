@@ -10,6 +10,8 @@
 
 本仓库由实际比赛工作目录导出。方法描述以[实际训练配置快照](work_dirs/segformer_b3_mydata_pseudo_conf090/segformer_b3_mydata_pseudo_conf090.py)、[伪标签生成报告](outputs/pseudo_labels_v1_conf090/generation.json)及对应源码为依据；性能数字来自作者保存的评估与提交记录，不是本次代码发布时重新训练或独立复测的结果。
 
+**代码入口：** [教师训练配置（保留 deeplabv3plus 文件名）](configs/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-40k_mydata-512x512.py) · [当前学生训练配置](work_dirs/segformer_b3_mydata_pseudo_conf090/segformer_b3_mydata_pseudo_conf090.py) · [过滤伪标签生成](demo/infer_pseudo_conf090.py) · [12-TTA 验证](tools/search_barren_factor.py) · [提交标签生成](demo/infer_gray_label.py)。所有具体文件路径及用途见 [9.1 代码位置与调用关系](#91-代码位置与调用关系)。
+
 ## 目录
 
 - [1. 任务特点与设计动机](#1-任务特点与设计动机)
@@ -154,7 +156,7 @@ SegFormer 采用分层 Transformer 编码器与轻量多尺度解码器。分层
 
 **当前没有在 SegFormer 上新增 CBAM 注意力模块，也没有新增高低分辨率双分支。** 网络内的注意力来自 MiT 主干本身。当前方法的主要定制工作是八类任务适配、训练样本构建、伪标签质量控制与推理流程，不应将这些描述为一套全新 Transformer 或自研注意力网络。
 
-教师配置文件仍保留早期命名 `deeplabv3plus_r50-d8_4xb4-40k_mydata-512x512.py`。文件名不决定实际架构，应读取其中的 `model.backbone`、`model.decode_head` 和最终展开配置。
+教师配置已上传，位于 [configs/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-40k_mydata-512x512.py](configs/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-40k_mydata-512x512.py)。按项目原命名要求保留了 `deeplabv3plus` 目录和文件名，但其中继承的是 `segformer_mit-b0.py`，再覆盖为 B3 的通道与层数，实际网络为 **SegFormer-B3，不是 DeepLabV3+**。文件名不决定实际架构，应读取其中的 `model.backbone`、`model.decode_head` 和最终展开配置。
 
 ## 4. 数据增强与监督目标
 
@@ -404,26 +406,58 @@ TTA 复用同一份学生权重，是单模型测试时增强。它会增加计�
 
 ## 9. 代码组织与复现步骤
 
-### 9.1 关键文件
+### 9.1 代码位置与调用关系
 
-| 文件 | 职责 |
-| --- | --- |
-| [实际训练配置快照](work_dirs/segformer_b3_mydata_pseudo_conf090/segformer_b3_mydata_pseudo_conf090.py) | 当前学生实验的权威入口，保留完整展开参数 |
-| [配置目录副本](configs/segformer/segformer_b3_mydata_pseudo_conf090.py) | 同方案配置入口 |
-| [MiT 主干](mmseg/models/backbones/mit.py) | 分层 Transformer 特征提取 |
-| [SegformerHead](mmseg/models/decode_heads/segformer_head.py) | 四阶段投影、对齐、拼接和八类预测 |
-| [数据集及自定义增强](mmseg/datasets/voc.py) | 八类映射、RandomRotate90、RandomCropByClass |
-| [原伪标签审计](tools/audit_v1_pseudo.py) | 检查样本、标签 ID、Ignore 和像素指纹 |
-| [过滤伪标签生成](demo/infer_pseudo_conf090.py) | 同教师概率重算、阈值过滤、原标签核验和报告 |
-| [隔离训练数据准备](tools/prepare_v1_conf090.py) | 复制独立标签目录、保存列表与完整训练配置 |
-| [训练入口](tools/train.py) | MMEngine 模型训练与周期验证 |
-| [原生测试入口](tools/test.py) | 无 TTA 或配置内原生 TTA 评估 |
-| [自定义 TTA 评估](tools/search_barren_factor.py) | 支持旋转 TTA；固定 factor=1.0 时不调整类别概率 |
-| [提交标签生成](demo/infer_gray_label.py) | 同口径多尺度、旋转、翻转预测及 PNG/ZIP 检查 |
-| [伪标签历史报告](outputs/pseudo_labels_v1_conf090/generation.json) | 教师来源、过滤统计、逐图记录与哈希 |
-| [源码来源说明](SOURCE_PROVENANCE.md) | 导出范围、上游来源、发布处理和缺失材料 |
+以下路径均相对于本仓库根目录，点击文件路径即可打开源码。原 AutoDL 项目根目录为 `/root/autodl-tmp/mmsegmentation/`，不是 GitHub 中需要额外查找的目录。
 
-仓库保留了框架原有配置及工作目录中的辅助文件；某个文件存在不代表当前模型启用了其中功能。请以本节指定的训练快照为准。
+#### 教师、学生与数据配置
+
+| 用途 | 仓库内具体路径 | 阅读说明 |
+| --- | --- | --- |
+| **基础教师训练配置** | [configs/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-40k_mydata-512x512.py](configs/deeplabv3plus/deeplabv3plus_r50-d8_4xb4-40k_mydata-512x512.py) | 已上传；名字保留 DeepLabV3+，内容实际配置 SegFormer-B3；教师生成伪标签时也使用它 |
+| 教师继承的模型模板 | [configs/_base_/models/segformer_mit-b0.py](configs/_base_/models/segformer_mit-b0.py) | 提供 EncoderDecoder、MiT、SegformerHead 基础定义；教师配置覆盖参数成为 B3，不是最终训练 B0 |
+| 教师继承的数据配置 | [configs/_base_/datasets/pascal_voc12.py](configs/_base_/datasets/pascal_voc12.py) | 数据路径、train/val 列表、增强和原生 6-TTA |
+| 教师继承的运行设置 | [configs/_base_/default_runtime.py](configs/_base_/default_runtime.py) | 默认 scope、日志与 hook 等运行设置 |
+| 教师继承的训练计划 | [configs/_base_/schedules/schedule_40k.py](configs/_base_/schedules/schedule_40k.py) | 基础调度模板；实际优化器和训练长度需结合教师配置中的覆盖项读取 |
+| **当前学生实际训练快照** | [work_dirs/segformer_b3_mydata_pseudo_conf090/segformer_b3_mydata_pseudo_conf090.py](work_dirs/segformer_b3_mydata_pseudo_conf090/segformer_b3_mydata_pseudo_conf090.py) | 当前成绩对应的权威配置；包括展开后的模型、损失、增强、学习率与过滤标签路径 |
+| 当前学生配置目录副本 | [configs/segformer/segformer_b3_mydata_pseudo_conf090.py](configs/segformer/segformer_b3_mydata_pseudo_conf090.py) | 同方案配置；精确追溯优先看上一行实际训练快照 |
+| 人工训练集列表 | [data/mydata/train.txt](data/mydata/train.txt) | 6296 张真实标注样本 ID |
+| 独立验证集列表 | [data/mydata/val.txt](data/mydata/val.txt) | 700 张验证样本 ID |
+| 当前学生联合训练列表 | [data/mydata/train_pseudo_conf090.txt](data/mydata/train_pseudo_conf090.txt) | 6796 行：真实样本 6296 + 伪样本 500 |
+
+教师配置有 `_base_` 继承关系；当前学生的实际快照已经展开为完整配置。**修改 `pascal_voc12.py` 不会自动改变这份完整学生快照。** 要核对学生实际增强，应查看快照中的 `train_dataloader.dataset.pipeline`，不能只看顶层 `crop_size` 或教师的数据配置。
+
+#### 网络、损失与数据变换实现
+
+| 用途 | 仓库内具体路径 | 阅读说明 |
+| --- | --- | --- |
+| MiT-B3 主干实现 | [mmseg/models/backbones/mit.py](mmseg/models/backbones/mit.py) | `MixVisionTransformer`；四阶段 Transformer 特征提取 |
+| 八类解码头实现 | [mmseg/models/decode_heads/segformer_head.py](mmseg/models/decode_heads/segformer_head.py) | `SegformerHead`；投影、对齐、拼接与融合；8 类由配置指定 |
+| 分割模型与滑窗 | [mmseg/models/segmentors/encoder_decoder.py](mmseg/models/segmentors/encoder_decoder.py) | `EncoderDecoder`，包括训练损失调用和 `slide_inference` |
+| CE 损失 | [mmseg/models/losses/cross_entropy_loss.py](mmseg/models/losses/cross_entropy_loss.py) | 多类交叉熵与 Ignore 处理；当前权重 1.0 |
+| Dice 损失 | [mmseg/models/losses/dice_loss.py](mmseg/models/losses/dice_loss.py) | 当前重叠型监督项；权重 0.5；实现口径见 4.3 节 |
+| 自定义数据集与增强 | [mmseg/datasets/voc.py](mmseg/datasets/voc.py) | 八类映射、`RandomRotate90`、`RandomCropByClass`；这是项目数据处理定制的主要位置 |
+| 其余图像增强 | [mmseg/datasets/transforms/transforms.py](mmseg/datasets/transforms/transforms.py) | 光度扰动、翻转、CutOut 等框架变换；是否使用及参数由 pipeline 决定 |
+| 标准化与 padding | [mmseg/models/data_preprocessor.py](mmseg/models/data_preprocessor.py) | `SegDataPreProcessor`；当前真实裁剪 512，再填充到 640 |
+
+#### 按流程查找脚本
+
+| 阶段 | 仓库内具体路径 | 作用 |
+| --- | --- | --- |
+| 教师或学生训练 | [tools/train.py](tools/train.py) | 通用训练入口；传入教师配置训练教师，传入 conf090 配置训练学生 |
+| 原硬伪标签生成 / 最终提交 | [demo/infer_gray_label.py](demo/infer_gray_label.py) | 传入教师、使用 6-TTA 可生成原硬标签；传入最终学生、使用 12-TTA 生成提交标签 |
+| 原硬伪标签安装及列表构建 | [tools/build_pseudo_train_list.py](tools/build_pseudo_train_list.py) | 将已生成的硬伪标签纳入训练数据并生成联合列表；不是模型推理脚本 |
+| 原伪标签只读审计 | [tools/audit_v1_pseudo.py](tools/audit_v1_pseudo.py) | 样本 ID、标签取值、Ignore 和像素指纹检查 |
+| **0.90 置信度过滤** | [demo/infer_pseudo_conf090.py](demo/infer_pseudo_conf090.py) | 同教师概率重算、阈值过滤、原标签类别核验和生成报告 |
+| 过滤标签安装与新配置生成 | [tools/prepare_v1_conf090.py](tools/prepare_v1_conf090.py) | 创建独立标签目录、列表及完整学生配置，不替换原标签 |
+| 无 TTA / 原生 6-TTA 验证 | [tools/test.py](tools/test.py) | 由配置决定验证数据与原生 TTA 组合 |
+| **当前 12-TTA 验证** | [tools/search_barren_factor.py](tools/search_barren_factor.py) | 固定 `--factors 1.0`，配合三尺度、0/180°和水平翻转评估 |
+| 参数展开检查 | [tools/misc/print_config.py](tools/misc/print_config.py) | 在训练前检查最终合并参数 |
+| 当前伪标签生成记录 | [outputs/pseudo_labels_v1_conf090/generation.json](outputs/pseudo_labels_v1_conf090/generation.json) | 教师配置、权重路径、SHA256、过滤统计与逐图记录 |
+
+**配置、网络源码与 checkpoint 不同：** 上述 `.py` 文件都已上传；训练好的 `.pth` 不在本次导出包中，也未上传。报告记录的历史教师权重位置是 `work_dirs/segformer_b3_mydata_68/best_mIoU_iter_40000.pth`；当前学生的历史训练目录是 `work_dirs/segformer_b3_mydata_pseudo_conf090/`，其中仓库只保留配置快照，没有学生权重。下文的 `checkpoints/teacher.pth` 和 `checkpoints/student_conf090.pth` 是用户补齐文件后使用的示例位置。
+
+仓库保留了框架原有配置及工作目录中的辅助文件；某个文件存在不代表当前模型启用了其中功能。请以本节指定的训练快照为准；完整发布范围见 [SOURCE_PROVENANCE.md](SOURCE_PROVENANCE.md)。
 
 ### 9.2 环境与所需材料
 
