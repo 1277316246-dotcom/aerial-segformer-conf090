@@ -1,0 +1,64 @@
+{
+  "real_samples": 6296,
+  "pseudo_samples": 500,
+  "validation_samples": 700,
+  "combined_samples": 6796,
+  "pseudo_pixel_fingerprint": "00359c4b21f2be12c76e82001452a6a634161560eb521385dc8006ed8feeec60",
+  "pseudo_class_pixels": [
+    150669205,
+    94908436,
+    46033559,
+    41362715,
+    5281542,
+    124931660,
+    57886005,
+    3214878
+  ],
+  "real_list_sha256": "24b90cf4f455a2560eab19343c857e020bb7c19c70496a8722581457f5289453",
+  "combined_list_sha256": "b35cf18450eae164b205bab371d023d245a527bdb3e6895d8483a60fd3ea102b",
+  "validation_list_sha256": "4345987dd17071c14d84d8f8f903c51133183b89e1b8858b74b8fd31bb42f628",
+  "baseline_config": "/root/autodl-tmp/mmsegmentation/work_dirs/segformer_b3_mydata_pseudo_repro/segformer_b3_mydata_pseudo.py",
+  "baseline_config_sha256": "e6b26586cb8b98914d1e30c8ad431f7165fda246c1bf2e8a3720e11f1874a4dc",
+  "teacher_checkpoint": "/root/autodl-tmp/mmsegmentation/work_dirs/segformer_b3_mydata_68/best_mIoU_iter_40000.pth",
+  "teacher_sha256": "802a698fadb363661931c3cfd44be915287c597745cbbb234305d45cfbdb6a1d",
+  "adapter_sha256": "32a3ac03cdafa82ae00c2e022610520490f7610ce4ebe681bceadd9aa4f031f8",
+  "output_config": "/root/autodl-tmp/mmsegmentation/configs/segformer/segformer_b3_mydata_pseudo_lovasz_b.py",
+  "work_dir": "/root/autodl-tmp/mmsegmentation/work_dirs/segformer_b3_mydata_pseudo_lovasz_b",
+  "old_loss": [
+    {
+      "avg_non_ignore": true,
+      "loss_name": "loss_ce",
+      "loss_weight": 1.0,
+      "type": "CrossEntropyLoss",
+      "use_sigmoid": false
+    },
+    {
+      "activate": true,
+      "eps": 1.0,
+      "loss_name": "loss_dice",
+      "loss_weight": 0.5,
+      "naive_dice": true,
+      "type": "DiceLoss",
+      "use_sigmoid": false
+    }
+  ],
+  "new_loss": [
+    {
+      "avg_non_ignore": true,
+      "loss_name": "loss_ce",
+      "loss_weight": 1.0,
+      "type": "CrossEntropyLoss",
+      "use_sigmoid": false
+    },
+    {
+      "type": "AerialLovaszLoss",
+      "loss_type": "multi_class",
+      "classes": "present",
+      "per_image": false,
+      "reduction": "none",
+      "loss_weight": 0.5,
+      "loss_name": "loss_lovasz"
+    }
+  ],
+  "config_text_sha256": "49914cbcd09efb7ed3d3f12fd65cc6b51087736598cf5a293d50c20ee5f01861"
+}

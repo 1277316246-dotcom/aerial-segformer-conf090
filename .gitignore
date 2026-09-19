@@ -1,0 +1,57 @@
+# Local Python/build products
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+mmseg/.mim/
+.DS_Store
+Thumbs.db
+
+# Credentials and local IDE settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.vscode/
+.idea/
+
+# Model weights, downloaded archives and runtime artifacts
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.safetensors
+*.tar
+*.tar.gz
+*.zip
+*.log
+events.out.tfevents.*
+/checkpoints/
+/test_data/
+/outputs_*/
+
+# Keep only the exact exported training snapshot under work_dirs
+/work_dirs/*
+!/work_dirs/segformer_b3_mydata_pseudo_conf090/
+/work_dirs/segformer_b3_mydata_pseudo_conf090/*
+!/work_dirs/segformer_b3_mydata_pseudo_conf090/segformer_b3_mydata_pseudo_conf090.py
+
+# Keep the exported pseudo-label generation report, not its PNGs
+/outputs/*
+!/outputs/pseudo_labels_v1_conf090/
+/outputs/pseudo_labels_v1_conf090/*
+!/outputs/pseudo_labels_v1_conf090/generation.json
+
+# Dataset images and label maps must be obtained separately
+/data/*
+!/data/mydata/
+/data/mydata/*
+!/data/mydata/train.txt
+!/data/mydata/val.txt
+!/data/mydata/train_pseudo_conf090.txt
